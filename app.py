@@ -12,37 +12,45 @@ st.write(
 )
 
 
-def redactar_pdf(pdf_bytes: bytes, texto_clave: str = "45509582") -> bytes:
+def redactar_pdf(pdf_bytes: bytes) -> bytes:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
 
     for page in doc:
-        # Altura y ancho de la página
         rect_page = page.rect
         h = rect_page.height
 
-        # 1. Búsqueda directa del texto si es texto seleccionable
-        instancias = page.search_for(texto_clave)
+        # Localizamos dónde empieza "Fecha y Hora" para nunca cruzar esa barrera horizontal
+        limite_derecho = 230.0  # margen seguro por defecto
+        fechas = page.search_for("Fecha y Hora")
+        if fechas:
+            limite_derecho = fechas[0].x0 - 5.0
+
+        # Buscamos las instancias del DNI o nombre
+        instancias = page.search_for("45509582")
+        if not instancias:
+            instancias = page.search_for("MOISES CEFERINO")
+
         if instancias:
             for inst in instancias:
-                # Expandir ligeramente el rectángulo encontrado para cubrir el nombre completo si están en el mismo bloque
+                # Ofuscamos únicamente la altura de esa línea, sin tocar la línea inferior
                 rect_area = fitz.Rect(
-                    inst.x0 - 5,
+                    inst.x0 - 2,
                     inst.y0 - 2,
-                    min(inst.x0 + 350, rect_page.width / 2),
-                    inst.y1 + 4,
+                    min(inst.x0 + 220, limite_derecho),
+                    inst.y1 + 1,  # Muy ajustado para no invadir la línea de "Fecha..."
                 )
-                page.add_redact_annot(rect_area, fill=(1, 1, 1))  # Fondo blanco
+                page.add_redact_annot(rect_area, fill=(1, 1, 1))
         else:
-            # 2. Ofuscación posicional de respaldo en la esquina inferior izquierda
-            # Ubicada entre los 30 y 60 puntos desde el fondo
-            x0 = 15
-            y0 = h - 60
-            x1 = 280
-            y1 = h - 35
-            rect_fijo = fitz.Rect(x0, y0, x1, y1)
+            # Respaldo posicional en la esquina inferior izquierda (solo la franja del nombre)
+            rect_fijo = fitz.Rect(
+                15,
+                h - 55,  # Línea superior (donde está el DNI y nombre)
+                min(220, limite_derecho),
+                h - 38,  # Termina justo antes de "Fecha y Hora de creación"
+            )
             page.add_redact_annot(rect_fijo, fill=(1, 1, 1))
 
-        # Aplica la redacción permanentemente (elimina los metadatos y glifos del área)
+        # Aplica la eliminación permanentemente
         page.apply_redactions()
 
     output_stream = io.BytesIO()
