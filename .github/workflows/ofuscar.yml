@@ -1,0 +1,34 @@
+name: Ofuscar Reporte PDF
+
+on:
+  workflow_dispatch:
+    inputs:
+      archivo_pdf:
+        description: 'Nombre exacto del PDF subido (ejemplo: entrada.pdf)'
+        required: true
+        default: 'entrada.pdf'
+
+jobs:
+  procesar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install pymupdf
+
+      - name: Ejecutar ofuscacion
+        run: |
+          python ofuscar_cli.py "${{ github.event.inputs.archivo_pdf }}" "resultado_ofuscado.pdf"
+
+      - name: Subir PDF ofuscado como descarga
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDF-Ofuscado
+          path: resultado_ofuscado.pdf
