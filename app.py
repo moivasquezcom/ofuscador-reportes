@@ -69,7 +69,7 @@ if uploaded_file is not None:
             pdf_bytes = uploaded_file.read()
             pdf_procesado = redactar_pdf(pdf_bytes)
 
-            nombre_salida = uploaded_file.name.replace(".pdf", "_oficial_Sentinel.pdf")
+            nombre_salida = uploaded_file.name.replace(".pdf", "_Reporte_Sentinel.pdf")
             st.success("¡Documento procesado correctamente!")
             st.download_button(
                 label="⬇️ Descargar PDF Ofuscado",
